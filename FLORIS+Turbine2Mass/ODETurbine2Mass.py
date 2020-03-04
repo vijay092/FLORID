@@ -14,28 +14,16 @@ def Cp(lamda, beta):
     return cp 
 
 def MultipleTurbs(t,x,power_aero):
-    nTurb = 4; nState = 3; 
-    F= np.zeros(nTurb*nState)
-    for i in range (nTurb):
-        F[i:i+nState] = TurbODE(t,x[i:i+nState],power_aero[i]);
+    nT = [0,1,2,3];
+    nState = 3; 
+    F= np.zeros(len(nT)*nState)
+    for i in nT:
+        F[nState*i:nState*i+nState] = TurbODE(t,x[nState*i:nState*i+nState],power_aero[i]);
         
     return F 
 
 def TurbODE(t,x,power):
-    
-    '''
-    This function is a mapping between the control handle "Kopt" and the
-    the power output of the turbine. 
-    
-    Inputs:
-        t: time in s
-        x: state in p.u.
-        Kopt: Control handle
-    
-    Output:
-        Power: Generator power output in p.u.
-    
-    '''
+
     
     F = np.zeros(len(x))
     
