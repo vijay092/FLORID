@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
 """
+Created on Sat Mar 21 23:07:05 2020
+
+@author: sanja
+"""
+
+
+# -*- coding: utf-8 -*-
+"""
 Created on Wed Nov 13 11:58:23 2019
 
 @author: sanja
@@ -8,6 +16,24 @@ Created on Wed Nov 13 11:58:23 2019
 import numpy as np
 import scipy.linalg as la
 from casadi import *
+import floris.tools as wfct
+import floris.tools.visualization as vis
+import floris.tools.cut_plane as cp
+fi = wfct.floris_utilities.FlorisInterface("example_input.json")
+
+
+
+def Cp(lamda, beta):
+    
+    c1 = 0.22; c2=116; c3 = 0.4;
+    c4 = c5 = 0; c6= 5; c7=12.5; c8=0.08; c9=0.035; c10=0;
+    
+    cp = c1*( (c2/(lamda + c8*beta)) - c2*c9/(beta**3 + 1) - c3 * beta - 
+             c4 * beta**c5  - c6 )\
+    * np.exp(-c7/(lamda + c8*beta)) + c10*lamda;
+    
+    return cp 
+
 def MultipleTurbs(t,x,power_aero):
     nT = [0,1,2,3];
     nState = 11; 
@@ -24,8 +50,6 @@ def TurbineEqns(x,u):
     '''
     This function takes in the state and outputs 
     '''
-    No_states = 11 
-    F = SX.zeros(No_states,) # Initialization
 
     # Miscellaneous
     Lm = 4;
@@ -63,6 +87,8 @@ def TurbineEqns(x,u):
     csh = 0.01;
 
     # Rename the states of the turbine for ease of analysis
+
+
     iqs = x[0];
     ids = x[1];
     eqs = x[2];
@@ -72,8 +98,7 @@ def TurbineEqns(x,u):
     phiQs = x[6];
     phiId = x[7];
     wg = x[8];
-    theta_tw = x[9];
-    wt = x[10];
+    
     
     R1 = R1/N;
     Ls = Ls/N;
@@ -85,19 +110,30 @@ def TurbineEqns(x,u):
     Ht = Ht*N;
     Hg = Hg*N;
     
-    # Mechanical Torque from FLORIS
-    #Tm = N*5e6/(5e6*wt);
-    Tm = 1;
+
+    rho = 1.225 ;
+    R_turb = 128/2;
+    V = 12;
+    Prated = 5e6;
+    GB = 145.5;
+    #wtB = wel/(2*GB);
+    wt = wg/GB
+    lamda = (wt)*R_turb/V;
+    beta = 0.01;
+    Tmbase =  GB * Prated * 1/(wel/2);
     Teref = u;
-    
+    # Intermediate variables
+    Pm = 0.5 * rho * np.pi* R_turb**2 * \
+            Cp(lamda,beta) * V**3 /(Tmbase);
+ 
     # Intermediate variables
     Te =    (eqs /ws) * iqs + (eds /ws) * ids;
 
     Qs =  -vqs * ids + vds * iqs;
 
-    iqr  = - eds /1 - Kmrr * iqs;
+    iqr  = - eds - Kmrr * iqs;
     
-    idr =  eqs /1 - Kmrr * ids;
+    idr =  eqs - Kmrr * ids;
     
     vqr =  Kiq* Kte * (Teref - Te) + Kiq * Kte /Tte * phiTe \
             - Kiq * iqr + Kiq/Tiq * phiIq; 
@@ -106,8 +142,10 @@ def TurbineEqns(x,u):
             - Kid * idr + Kid/Tid * phiId; 
     
     
-    # # Differential equations:
-    f_0 = wel / Ls * ( -R1 * iqs + ws * Ls * ids  + wg/ws * eqs - 1/(Tr * ws) * eds  - vqs + Kmrr * vqr);
+    # Differential equations:
+    f_0 = wel / Ls * ( -R1 * iqs + ws * Ls * ids  \
+                              + wg/ws * eqs - 1/(Tr * ws) * eds  \
+                              - vqs + Kmrr * vqr);
       
     f_1 = wel / Ls * ( -R1 * ids - ws * Ls * iqs +\
                               wg/ws * eds - 1/(Tr * ws) * eqs \
@@ -119,25 +157,17 @@ def TurbineEqns(x,u):
     f_3 = wel * ws * (- R2 * iqs  - (1 - wg/ws) * eqs - \
                               1/(Tr * ws) * eds  + Kmrr * vqr);
     
-    f_4  = Teref - Te;
+    f_4 = Teref - Te;
     
-    f_5  = Kte * (Teref - Te)  + Kte /Tte * phiTe  - iqr;
+    f_5 = Kte * (Teref - Te)  + Kte /Tte * phiTe  - iqr;
 
-    f_6  = Qsref - Qs;
+    f_6 = Qsref - Qs;
     
-    f_7  = Kqs * (Qsref - Qs)  + Kqs /Tqs * phiQs  - idr;
-
-    f_8  = 1/(2*Hg) * (ksh*theta_tw + \
-                              csh*wel* (wt - wg) - Te);
+    f_7 = Kqs * (Qsref - Qs)  + Kqs /Tqs * phiQs  - idr;
     
-    f_9  = wel*(wt - wg);
+    f_8 = 1 /(2*Hg ) * (Pm  - wg*Te);
     
-    f_10  = 1/(2*Ht) * (Tm - ksh * theta_tw \
-                              - csh*wel*(wt - wg));
-     
-    
-    return f_0, f_1, f_2, f_3, f_4, f_5, f_6, f_7, f_8, f_9, f_10
-
+    return f_0, f_1, f_2, f_3, f_4, f_5, f_6, f_7, f_8
 
  
 

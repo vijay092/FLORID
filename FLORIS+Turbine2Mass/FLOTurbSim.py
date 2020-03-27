@@ -38,6 +38,7 @@ x0 = np.ones(nTurb*nState)
 
 # Set the yaw angles to whatever you want 
 yaw_angles = [15.0, 0, 50.0, 0]
+fi.reinitialize_flow_field(wind_speed=speed,wind_direction=wdir)
 fi.calculate_wake(yaw_angles=yaw_angles)
 
 # New power
