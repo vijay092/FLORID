@@ -16,9 +16,9 @@ import collocation as cl
 import random
 from tempfile import TemporaryFile
 
-_ = outfile.seek(0)
+# _ = outfile.seek(0)
 
-h = np.load(outfile)
+# h = np.load(outfile)
 # An augmented state vector that includes the running cost and
 # the original state
 nState = 9;
@@ -53,8 +53,8 @@ T_max = 0.01
 C_list = [np.array([0,0.5,1])]
 
 
-x0 = h
-NumNodes = [10]
+x0 = 0.008*np.ones(10,)
+NumNodes = [1000]
 Markers = ['o','s','*','.']
 for c in C_list:
 

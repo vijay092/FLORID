@@ -91,7 +91,7 @@ def collocation_optimize(f,g,Time,x0,nU,c):
     
         if k == 0:
             x_cur = np.copy(x0)
-        else:
+        else:   
             x_cur = x_next
         
         u_cur = U_sym[:,k]
